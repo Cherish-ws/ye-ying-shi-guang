@@ -55,7 +55,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 14px 18px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
   pointer-events: none;
   z-index: 5;
   background: linear-gradient(to bottom, rgba(4, 6, 12, 0.6), transparent 110px);
@@ -255,16 +255,17 @@ body {
 
 .joystick {
   position: absolute;
-  right: 18px;
-  bottom: 28px;
+  right: 14px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   left: auto;
-  width: 128px;
-  height: 128px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   border: 1px solid rgba(232, 228, 216, 0.22);
   background: rgba(8, 12, 22, 0.35);
   pointer-events: auto;
   touch-action: none;
+  z-index: 9;
 }
 
 .stick {
@@ -284,14 +285,15 @@ body {
 
 .skill-col {
   position: absolute;
-  left: 16px;
+  left: 14px;
   right: auto;
-  bottom: 36px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: row;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
   pointer-events: none;
+  z-index: 9;
 }
 
 .skill-btn {
@@ -392,16 +394,16 @@ body {
 /* minimap */
 .minimap {
   position: absolute;
-  right: 14px;
-  bottom: 14px;
-  width: 120px;
-  height: 120px;
+  right: 12px;
+  bottom: calc(158px + env(safe-area-inset-bottom, 0px));
+  width: 88px;
+  height: 88px;
   border-radius: 12px;
   border: 1px solid var(--line);
   background: rgba(6, 10, 18, 0.72);
   z-index: 6;
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
 .minimap.hidden {
@@ -1117,29 +1119,47 @@ h1 {
   }
 
   .minimap {
-    width: 88px;
-    height: 88px;
+    width: 72px;
+    height: 72px;
     right: 10px;
-    bottom: 10px;
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
   }
 
-  h1 {
-    font-size: 28px;
+  .joystick {
+    width: 104px;
+    height: 104px;
   }
 
-  .stat .value {
-    font-size: 20px;
+  .skill-btn {
+    width: 58px;
+    height: 58px;
+    font-size: 12px;
+  }
+
+  .skill-btn.pulse,
+  .skill-btn.dash {
+    width: 54px;
+    height: 54px;
+  }
+
+  .hud-right {
+    min-width: 86px;
+    gap: 6px;
+  }
+
+  .stat.vertical {
+    min-width: 86px;
   }
 
   .bar {
-    width: 78px;
+    width: 86px;
   }
 
-  .bar.xp {
-    max-width: 200px;
+  .stat .value {
+    font-size: 18px;
   }
 
   #hud {
-    padding: 10px 12px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px;
   }
 }

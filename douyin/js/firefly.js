@@ -716,18 +716,7 @@
 
   const cam = { x: 0, y: 0 };
   const keys = Object.create(null);
-  const pointer = { x: 0, y: 0, down: false, active: false, wx: 0, wy: 0, type: "mouse" };
-  // 全屏拖拽摇杆：从按下点起算，半屏为满幅，拉远也不会丢控制
-  const mouseDrag = {
-    on: false,
-    id: -1,
-    ox: 0,
-    oy: 0,
-    x: 0,
-    y: 0,
-    dx: 0,
-    dy: 0,
-  };
+  const pointer = { x: 0, y: 0, down: false, active: false, wx: 0, wy: 0 };
 
   const stats = {
     magnet: 1,
@@ -2501,112 +2490,18 @@
     pointer.x = t.clientX;
     pointer.y = t.clientY;
     pointer.active = true;
-    if (e.pointerType) pointer.type = e.pointerType;
     updatePointerWorld();
   }
 
-  function dragMaxRadius() {
-    // 半屏为满幅：鼠标从中心拖到边缘即可满速，拉得再远也只是满速，不会丢控制
-    return Math.max(120, Math.min(W, H) * 0.48);
-  }
-
-  function updateDrag(x, y) {
-    mouseDrag.x = x;
-    mouseDrag.y = y;
-    const maxR = dragMaxRadius();
-    let dx = (x - mouseDrag.ox) / maxR;
-    let dy = (y - mouseDrag.oy) / maxR;
-    const m = Math.hypot(dx, dy);
-    if (m > 1) {
-      dx /= m;
-      dy /= m;
-    }
-    mouseDrag.dx = dx;
-    mouseDrag.dy = dy;
-  }
-
-  function endDrag() {
-    mouseDrag.on = false;
-    mouseDrag.id = -1;
-    mouseDrag.dx = 0;
-    mouseDrag.dy = 0;
-  }
-
-  function isUiTarget(el) {
-    return (
-      el &&
-      (el.closest &&
-        (el.closest("#overlay") ||
-          el.closest("#choice-overlay") ||
-          el.closest("#shop-overlay") ||
-          el.closest("#hud") ||
-          el.closest("#touch-ui") ||
-          el.closest("#boss-bar")))
-    );
-  }
-
   canvas.addEventListener("pointerdown", (e) => {
-    if (isUiTarget(e.target)) return;
     pointer.down = true;
     pointerPos(e);
-    if (state !== "playing") return;
-    // 鼠标/笔：全屏拖拽移动；不在此处放闪耀（避免误触）
-    if (e.pointerType === "mouse" || e.pointerType === "pen") {
-      mouseDrag.on = true;
-      mouseDrag.id = e.pointerId;
-      mouseDrag.ox = e.clientX;
-      mouseDrag.oy = e.clientY;
-      updateDrag(e.clientX, e.clientY);
-      try {
-        canvas.setPointerCapture(e.pointerId);
-      } catch (_) {}
-    } else {
-      // 触屏：点画布仍可闪耀；移动靠摇杆或右侧拖拽
-      if (e.clientX > W * 0.4) {
-        mouseDrag.on = true;
-        mouseDrag.id = e.pointerId;
-        mouseDrag.ox = e.clientX;
-        mouseDrag.oy = e.clientY;
-        updateDrag(e.clientX, e.clientY);
-        try {
-          canvas.setPointerCapture(e.pointerId);
-        } catch (_) {}
-      } else {
-        tryFlare();
-      }
-    }
+    if (state === "title" || state === "dead" || state === "choosing") return;
+    if (state === "playing") tryFlare();
   });
-  canvas.addEventListener("pointermove", (e) => {
-    pointerPos(e);
-    if (mouseDrag.on && e.pointerId === mouseDrag.id) {
-      updateDrag(e.clientX, e.clientY);
-    }
-  });
-  // 画布被 HUD 盖住时也要能跟鼠标
-  window.addEventListener(
-    "pointermove",
-    (e) => {
-      if (e.pointerType === "touch") return;
-      if (isUiTarget(e.target)) return;
-      pointerPos(e);
-    },
-    { passive: true }
-  );
-  canvas.addEventListener("pointerleave", () => {
-    if (!mouseDrag.on) {
-      // 悬停跟向：移出画布即停，避免卡在边缘一直冲
-      pointer.active = false;
-    }
-  });
-  window.addEventListener("pointerup", (e) => {
+  canvas.addEventListener("pointermove", (e) => pointerPos(e));
+  window.addEventListener("pointerup", () => {
     pointer.down = false;
-    if (mouseDrag.on && (!e || e.pointerId === mouseDrag.id || e.pointerId == null)) {
-      endDrag();
-    }
-  });
-  window.addEventListener("pointercancel", () => {
-    pointer.down = false;
-    endDrag();
   });
   canvas.addEventListener(
     "touchstart",
@@ -2657,10 +2552,8 @@
     const t = e.touches ? e.touches[0] : e;
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    // 用屏幕对角线一半做满幅，手指拖出摇杆圈仍可控
-    const maxR = Math.max(rect.width * 0.5, Math.min(window.innerWidth, window.innerHeight) * 0.35);
-    let dx = (t.clientX - cx) / maxR;
-    let dy = (t.clientY - cy) / maxR;
+    let dx = (t.clientX - cx) / (rect.width * 0.5);
+    let dy = (t.clientY - cy) / (rect.height * 0.5);
     const m = Math.hypot(dx, dy);
     if (m > 1) {
       dx /= m;
@@ -2864,34 +2757,29 @@
     if (keys["ArrowUp"] || keys["KeyW"]) ay -= 1;
     if (keys["ArrowDown"] || keys["KeyS"]) ay += 1;
 
-    // 触屏虚拟摇杆
-    if (joy.active) {
-      ax += joy.x * 1.25;
-      ay += joy.y * 1.25;
-    }
-    // 按住拖拽（触屏右侧 / 鼠标按住）
-    if (mouseDrag.on) {
-      ax += mouseDrag.dx * 1.35;
-      ay += mouseDrag.dy * 1.35;
-    }
-    // 桌面：鼠标悬停即跟向移动，无需按住
-    if (
-      !joy.active &&
-      !mouseDrag.on &&
-      pointer.active &&
-      state === "playing" &&
-      pointer.type !== "touch"
-    ) {
-      updatePointerWorld();
+    updatePointerWorld();
+
+    if (pointer.active && pointer.down) {
       const dx = pointer.wx - player.x;
       const dy = pointer.wy - player.y;
       const d = Math.hypot(dx, dy);
-      const dead = 14;
-      if (d > dead) {
-        // 跟随更跟手：近处也有效，半屏满速，再远保持满速
-        const t = Math.min(1, (d - dead) / (Math.min(W, H) * 0.38));
-        ax += (dx / d) * t * 1.45;
-        ay += (dy / d) * t * 1.45;
+      if (d > 8) {
+        ax += (dx / d) * 1.15;
+        ay += (dy / d) * 1.15;
+      }
+    }
+
+    // virtual joystick
+    if (joy.active) {
+      ax += joy.x * 1.25;
+      ay += joy.y * 1.25;
+    } else if (!pointer.down && pointer.active) {
+      const dx = pointer.wx - player.x;
+      const dy = pointer.wy - player.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 50 && d < 320) {
+        ax += (dx / d) * 0.4;
+        ay += (dy / d) * 0.4;
       }
     }
 
