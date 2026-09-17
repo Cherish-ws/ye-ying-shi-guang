@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>夜萤拾光 · Firefly</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-shell">
+    <canvas id="game"></canvas>
+    <div id="danger-flash" class="danger-flash"></div>
+
+    <div id="hud" class="hidden">
+      <div class="hud-left">
+        <div class="stat">
+          <span class="label">光尘</span>
+          <span id="score" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">连击</span>
+          <span id="combo" class="value">x1</span>
+        </div>
+      </div>
+
+      <div class="hud-center">
+        <div id="level-label">初萤 · Lv.1</div>
+        <div class="xp-wrap">
+          <div class="bar xp">
+            <div id="xp-bar" class="fill xp"></div>
+          </div>
+          <div id="xp-text" class="xp-text">0 / 8</div>
+        </div>
+        <div id="night-label" class="night-label">夜深 0%</div>
+      </div>
+
+      <div class="hud-right">
+        <div class="stat vertical">
+          <span class="label">辉光</span>
+          <div class="bar">
+            <div id="glow-bar" class="fill"></div>
+          </div>
+        </div>
+        <div class="stat vertical">
+          <span class="label">光脉 <span id="pulse-hint">E</span></span>
+          <div class="bar">
+            <div id="pulse-bar" class="fill pulse"></div>
+          </div>
+        </div>
+        <div class="stat vertical">
+          <span class="label">体力</span>
+          <div id="hearts" class="hearts"></div>
+        </div>
+        <div class="stat vertical">
+          <span class="label">构筑</span>
+          <span id="build-tags" class="build-tags">—</span>
+        </div>
+      </div>
+    </div>
+
+    <canvas id="minimap" class="minimap hidden" width="120" height="120"></canvas>
+
+    <div id="boss-bar" class="boss-bar hidden">
+      <div class="boss-name" id="boss-name">暗影君王</div>
+      <div class="bar boss">
+        <div id="boss-fill" class="fill boss"></div>
+      </div>
+    </div>
+
+    <div id="level-toast" class="level-toast hidden">
+      <div class="toast-ring"></div>
+      <div class="toast-title" id="toast-title">升级</div>
+      <div class="toast-sub" id="toast-sub">辉光更盛</div>
+    </div>
+
+    <div id="choice-overlay" class="choice-overlay hidden">
+      <div class="choice-panel">
+        <div class="choice-kicker" id="choice-kicker">进阶 · Lv.2</div>
+        <h2 class="choice-title">选择一道微光</h2>
+        <div id="choice-cards" class="choice-cards"></div>
+        <p class="choice-hint">点击选择 · 键盘 1 / 2 / 3</p>
+      </div>
+    </div>
+
+    <!-- Meta shop -->
+    <div id="shop-overlay" class="choice-overlay hidden">
+      <div class="choice-panel shop-panel">
+        <div class="choice-kicker">余烬商店 · 局外成长</div>
+        <h2 class="choice-title">用余烬点亮长夜</h2>
+        <div class="ember-line">持有余烬 <strong id="ember-count">0</strong></div>
+        <div id="shop-grid" class="shop-grid"></div>
+        <p class="choice-hint">余烬在每次夜行结束后结算</p>
+        <button id="btn-shop-close" class="btn-primary btn-ghost">返回</button>
+      </div>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <div class="panel">
+        <div class="ornament">✦</div>
+        <h1 id="title">夜萤拾光</h1>
+        <p id="subtitle" class="subtitle">拾光进阶构筑，挑战暗影君王；余烬可跨局变强。</p>
+
+        <div id="intro-copy" class="intro-copy">
+          <p><strong>移动</strong> WASD / 方向键 / 拖动屏幕</p>
+          <p><strong>闪耀</strong> 空格 — 爆闪驱散近处暗影</p>
+          <p><strong>冲刺</strong> 拿到「瞬影」后 Shift 短距突进</p>
+          <p><strong>光脉</strong> E/Q — 充满后大范围聚尘驱影</p>
+          <p><strong>肉鸽</strong> 升级三选一；每 5 阶精英，每 10 阶 Boss</p>
+          <p class="warn">Boss 半血会狂暴；地图两倍大，注意边缘箭头。</p>
+        </div>
+
+        <div id="glimmer-pick" class="glimmer-pick">
+          <div class="glimmer-label">选择微光</div>
+          <div id="glimmer-row" class="glimmer-row"></div>
+          <div id="glimmer-detail" class="glimmer-detail"></div>
+        </div>
+
+        <div id="score-summary" class="score-summary hidden">
+          <div class="big-score">
+            <span class="label">本局光尘</span>
+            <span id="final-score">0</span>
+          </div>
+          <div class="ember-gain" id="ember-gain">获得余烬 +0</div>
+          <div class="level-line">
+            终阶 <strong id="final-level">Lv.1 初萤</strong>
+            <span class="dot">·</span>
+            唤醒 <strong id="final-blooms">0</strong> 花
+          </div>
+          <div class="build-line" id="final-build"></div>
+          <div class="best">
+            最佳 <span id="best-score">0</span>
+            <span class="dot">·</span>
+            最高阶 <span id="best-level">Lv.1</span>
+            <span class="dot">·</span>
+            余烬 <span id="best-embers">0</span>
+          </div>
+          <p id="death-reason" class="death-reason"></p>
+        </div>
+
+        <div class="title-actions">
+          <button id="btn-start" class="btn-primary">开始夜行</button>
+          <button id="btn-shop" class="btn-secondary">余烬商店</button>
+        </div>
+        <p class="hint">标题 Enter/空格开始 · 死亡后按 Enter（空格是闪耀）· 强化：<span id="meta-summary">无</span></p>
+      </div>
+    </div>
+
+    <div id="pause-badge" class="hidden">已暂停 · 按 P 继续</div>
+
+    <!-- Touch controls (Douyin / mobile) -->
+    <div id="touch-ui" class="touch-ui">
+      <div id="joystick" class="joystick">
+        <div id="stick" class="stick"></div>
+      </div>
+      <div class="skill-col">
+        <button type="button" id="btn-touch-flare" class="skill-btn flare">闪耀</button>
+        <button type="button" id="btn-touch-pulse" class="skill-btn pulse">光脉</button>
+        <button type="button" id="btn-touch-dash" class="skill-btn dash">冲刺</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
